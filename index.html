@@ -1,0 +1,62 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Web-Chat</title>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>    </head>
+        <link rel="stylesheet" href="index.css">
+    <body>
+
+        <div id="app">
+                <input class="credit" type = "text" v-model="message" @keypress.enter placeholder="Enter the text of the message"/>
+                <input class="credit" type ="button" @click="sendMessage" value="send"/>
+
+                <div v-for="msg in getmsg">{{msg}}</div>
+        </div>
+
+        <script type = "module">
+            
+        new Vue({
+            el:'#app',
+            data:{
+                params: '',
+                ws: '',
+                message: '',
+                getmsg:[]
+            },
+            created(){
+                    this.params = (new URL(document.location)).searchParams;
+                    this.ws = new WebSocket('ws://localhost:3000');
+                    this.ws.onopen = ()=>{
+                            this.ws.send(JSON.stringify({type: "connect", roomID: this.params.get("id"), name: this.params.get("name")}));
+                        }
+
+                    this.ws.onmessage = (message) => {
+                        const messages = JSON.parse(message.data);
+                        if(messages.type=="connect"){
+                            this.getmsg.push(`${messages.name} Logged into the chat`);
+                        }
+                        else{
+                            messages.forEach(element => {
+                                if(element.id==this.params.get("id")||element.roomID==this.params.get("id")){
+                                    if(element.type!="connect"){
+                                        this.getmsg.push(`${element.name}: ${element.message}`);
+                                    }
+                                    else{
+                                        this.getmsg.push(`${element.name} Logged into the chat`);
+                                    }
+                                }
+                            });
+                        }
+                    }   
+            },
+            methods:{
+                sendMessage(){
+                    this.ws.send(JSON.stringify({type: "send", id: this.params.get("id"), name: this.params.get("name"), message:this.message}))
+                }
+            }
+        })          
+        </script>
+
+    </body>
+
+</html>
